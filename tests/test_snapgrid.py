@@ -366,6 +366,93 @@ class NonUniformRegressionTest(unittest.TestCase):
         self.assertIn("stretched differently in each direction",
                       str(ctx.exception))
 
+    @staticmethod
+    def _benchmark_case(base: int, j: int) -> np.ndarray:
+        # Mirrors benchmarks/nonuniform_suite.make_case on an
+        # arbitrary seed base: sprite base+j, FACTOR_PAIRS[j % 12],
+        # RESAMPLES[j % 3], blur on even non-nearest cases, PNG
+        # round-trip.
+        import io
+
+        factor_pairs = [(3.0, 5.0), (5.0, 3.0), (2.6, 4.2), (4.2, 2.6),
+                        (2.0, 4.0), (4.0, 2.0), (3.8, 2.4), (2.4, 3.8),
+                        (3.0, 4.5), (4.5, 3.0), (2.5, 5.0), (5.0, 2.5)]
+        resamples = [Image.Resampling.BILINEAR, Image.Resampling.BICUBIC,
+                     Image.Resampling.NEAREST]
+        orig = make_sprite(base + j)
+        fx, fy = factor_pairs[j % len(factor_pairs)]
+        resample = resamples[j % 3]
+        w, h = orig.size
+        dmg = orig.resize((max(8, round(w * fx)), max(8, round(h * fy))),
+                          resample)
+        if resample != Image.Resampling.NEAREST and j % 2 == 0:
+            dmg = dmg.filter(ImageFilter.GaussianBlur(0.4))
+        buf = io.BytesIO()
+        dmg.save(buf, format="PNG")
+        buf.seek(0)
+        d2 = Image.open(buf)
+        d2.load()
+        return np.asarray(d2)
+
+    def test_crosspool_nonuniform_abstains(self):
+        # Deep-fix round, fresh-seed case (20000+ set, case 6): an
+        # 18x14 sprite stretched 3.8x/2.4x (bilinear + blur) was
+        # emitted as 18x10.  Each single-pool lattice test just
+        # missed it (5 profile breakpoints; pooled fundamental
+        # concentration 0.81), but BOTH pools' fundamental periods
+        # were the y axis's true pitch -- the cross-pool agreement
+        # refutation now abstains.
+        arr = self._benchmark_case(20000, 6)
+        with self.assertRaises(AbstainError) as ctx:
+            estimate_grid([arr])
+        self.assertIn("stretched differently in each direction",
+                      str(ctx.exception))
+
+    def test_tiny_bicubic_nonuniform_abstains(self):
+        # Deep-fix round, fresh-seed case (20000+ set, case 13): an
+        # 8x8 sprite stretched 5.0x/3.0 (bicubic, damaged 40x24) was
+        # emitted as 14x8 with confidence 0.83 -- inside the
+        # small-image guard's scope, its x axis "confirmed" by a
+        # pooled fundamental 17% off the winner's pitch, which the
+        # refutation's 20% tolerance had let count as agreement.
+        # The guard's confirmation tolerance is now 8%: the axis no
+        # longer confirms, and the guard refuses the grid.
+        arr = self._benchmark_case(20000, 13)
+        with self.assertRaises(AbstainError) as ctx:
+            estimate_grid([arr])
+        msg = str(ctx.exception)
+        self.assertIn("very small", msg)
+        self.assertIn("cannot be recovered safely", msg)
+
+    def test_merged_axis_nonuniform_abstains(self):
+        # The deep-fix round's case (REVIEW.md): a 16x24 sprite
+        # stretched 2.0x in x and 4.0x in y (bicubic + blur 0.4, PNG
+        # round-trip -- the non-uniform benchmark's protocol on the
+        # 8000+ dev indices, case 4).  The square sweep won 8x24 by
+        # MERGING pairs of true x cells: at the smeared 2.0 px true
+        # pitch the breakpoint lattices stay silent and no coarser
+        # challenger applies, so the case emitted a confident wrong
+        # grid (0.45) outside the small-image guard's scope (damaged
+        # short side 32 px).  The finer-harmonic verification now
+        # refutes it: doubling the x count cuts the exact error to
+        # 0.73x with real phase sensitivity of its own.
+        import io
+
+        orig = make_sprite(8004)
+        w, h = orig.size
+        dmg = orig.resize((round(w * 2.0), round(h * 4.0)),
+                          Image.Resampling.BICUBIC)
+        dmg = dmg.filter(ImageFilter.GaussianBlur(0.4))
+        buf = io.BytesIO()
+        dmg.save(buf, format="PNG")
+        buf.seek(0)
+        d2 = Image.open(buf)
+        d2.load()
+        with self.assertRaises(AbstainError) as ctx:
+            estimate_grid([np.asarray(d2)])
+        self.assertIn("stretched differently in each direction",
+                      str(ctx.exception))
+
 
 class SmallImageGuardTest(unittest.TestCase):
     """The small-image guard: tiny non-uniform sprites must abstain.
