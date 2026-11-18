@@ -25,8 +25,9 @@ colour per cell on a uniform grid) that went through a smooth upscale
     colour groups.
 3.  **Abstention.**  Weak phase evidence, a near-tie with a different
     grid, a high forward-model error, a winner whose pitch an axis's
-    own breakpoint lattice or a coarser same-axis challenger refutes
-    (the non-uniform-resize verification), a winner on a very small
+    own breakpoint lattice or a coarser same-axis challenger refutes,
+    or whose count a doubled-count challenger on the same axis
+    refutes (the non-uniform-resize verification), a winner on a very small
     image whose pitch an axis's own breakpoint lattice cannot
     positively confirm (the small-image guard), or a frame that
     disagrees with the shared grid (sheet mode) all raise
@@ -439,6 +440,82 @@ QKINK_PEAKS_MIN = 6
 QKINK_FUND_MIN = 0.85
 QKINK_WINNER_MAX = 0.50
 QKINK_DISAGREE_MIN = 0.20
+# Finer-harmonic challenger (added in the deep-fix round for the one
+# residual the checks above cannot see): a winner can also be wrong
+# by MERGING pairs of true cells -- its pitch exactly twice the
+# axis's own (e.g. a 16-cell axis stretched 2.0x/4.0 with the other
+# axis at 4.0 wins as 8 cells of pitch 4.0).  The breakpoint lattice
+# is blind there (at a smeared ~2 px true pitch the breakpoints wash
+# out), and the coarser challenger looks the wrong way.  The
+# signature that remains is in the forward model itself: doubling
+# this axis's count (other axis fixed at the winner) explains the
+# image FAR better, and the doubled grid is itself phase-sensitive
+# on this axis -- its cuts sit on real structure, not on a
+# refinement of the winner's.  Both conditions are required, on
+# exact (median-sampled) errors under the winner's own damage
+# model:
+#   * the doubled challenger cuts the winner's error to
+#     <= FINER_ERR_RATIO_MAX of it, and
+#   * shifting the doubled grid by half a (doubled) cell costs
+#     >= FINER_GAIN_MIN of error.
+# The winner must also be an imperfect explanation
+# (err >= FINER_ERR_FLOOR): at near-zero error a ratio is noise,
+# and exact integer-nearest recoveries sit at err 0.  A fast
+# (mean-sampled) ratio pre-filter keeps the exact snaps off the
+# axes that cannot possibly qualify.
+# Calibration (DEV evidence: the genuine suites + the 8000+
+# non-uniform dev set, measured before the fresh validation sets
+# were run): over the 342 genuine emitted axes of the gentle /
+# harsh / held-out suites, the 204 with a defined doubled
+# challenger (winner pitch >= 3.6) were measured -- exact stats for
+# every axis whose fast ratio came within reach of the threshold
+# (71 axes), the rest excluded by the pre-filter with >= 0.5 slack
+# against the largest fast-vs-exact ratio discrepancy observed
+# anywhere (0.24).  With err >= 2.0 the genuine population's
+# smallest exact ratio was 0.963 and its largest doubled-grid
+# phase gain 0.08; the dev fake axis (16 cells won as 8) scored
+# ratio 0.732 and gain 2.38 at err 13.4.  The thresholds
+# (0.85 / 1.0) sit inside those gaps.
+FINER_ERR_FLOOR = 2.0
+FINER_FAST_PREFILTER = 1.05
+FINER_ERR_RATIO_MAX = 0.85
+FINER_GAIN_MIN = 1.0
+# Cross-pool lattice agreement (same deep-fix round): each kink
+# refutation reads ONE evidence pool, and each has a precondition
+# that can individually just fail -- measured on a fresh-seed case
+# (an 18x14 sprite stretched 3.8x/2.4, winner 18x10): the profile
+# pool offered only 5 breakpoints (below KINK_PEAKS_MIN) with the
+# winner's pitch concentrating at 0.59 (above KINK_WINNER_MAX),
+# while the pooled fundamental reached only 0.81 (below
+# QKINK_FUND_MIN) -- yet BOTH pools' fundamental periods were the
+# axis's true pitch (2.45 vs winner 3.40), agreeing with each other
+# exactly.  Two independent pools agreeing on a period that is NOT
+# the winner's is stronger evidence than either pool's absolute
+# concentration, so this refutation fires when: both pools offer
+# >= XPOOL_PEAKS_MIN breakpoints; their fundamental periods agree
+# within XPOOL_AGREE_MAX; the agreed period disagrees with the
+# winner's pitch by > QKINK_DISAGREE_MIN; the fundamentals
+# concentrate at >= XPOOL_FUND_MIN_PROFILE (profile) /
+# XPOOL_FUND_MIN_POOLED (pooled); and the pooled breakpoints do
+# not themselves support the winner (concentration at the winner's
+# pitch <= XPOOL_WINNER_MAX -- the profile pool is allowed to
+# concentrate at the winner there, as content edges in the averaged
+# profile can align spuriously; the pooled per-line evidence is
+# the one that must not support it).  Calibration (DEV evidence:
+# the genuine suites + fresh-seed sets at 20000+/21000+, measured
+# before the 30000+ validation sets were run): over 442 genuine
+# emitted axes the rule fires ZERO times across a broad plateau of
+# the thresholds (agreement 0.10-0.15, profile fundamental
+# 0.85-0.90, pooled fundamental 0.70-0.80, peaks floor 5; at a
+# peaks floor of 4 one genuine axis fires, at 6 the target case is
+# lost); the target fake axis scores fundamentals 0.96 / 0.81,
+# agreement 0.00, disagreement 0.39, pooled winner concentration
+# 0.15.  The chosen point sits inside the plateau.
+XPOOL_PEAKS_MIN = 5
+XPOOL_AGREE_MAX = 0.12
+XPOOL_FUND_MIN_PROFILE = 0.90
+XPOOL_FUND_MIN_POOLED = 0.75
+XPOOL_WINNER_MAX = 0.50
 # Small-image guard (Rakshit's conservative-guard decision after the
 # verification fix above): the refutations need >= KINK_PEAKS_MIN
 # breakpoints to fire at all, and below that count a forced axis is
@@ -460,6 +537,20 @@ QKINK_DISAGREE_MIN = 0.20
 # scope is unchanged.
 GUARD_MAX_SHORT_AXIS = 24
 GUARD_PEAKS_MIN = 3
+# The guard's fundamental-period agreement tolerance (used only by
+# _axis_pitch_supported, NOT by the qkink refutation, whose
+# disagreement threshold is QKINK_DISAGREE_MIN): how closely an
+# axis's lattice fundamental must match the winner's pitch for the
+# lattice to count as CONFIRMING it.  Tightened in the deep-fix
+# round: a fresh-seed case (an 8x8 shape sprite stretched 5.0x/3.0,
+# damaged 40x24) was emitted as 14x8 because 3-4 pooled content
+# edges concentrated at a period 17% / 13% off the winner's pitch
+# and passed as "agreement" under the refutation's 20% tolerance.
+# Positive confirmation must be stricter than refutation: over the
+# in-scope genuine emissions (the 24x24 nearest recoveries) the
+# measured fundamental agreement is <= 0.032, while the fake's axes
+# sat at 0.130 / 0.166.  0.08 sits inside that gap.
+GUARD_AGREE_MAX = 0.08
 
 
 def _sat(pmj: np.ndarray) -> np.ndarray:
@@ -736,6 +827,39 @@ def _qpool_kink_rejects(pmj: np.ndarray, axis: int, n_w: int) -> bool:
             and abs(s_fund - p_w) / s_fund > QKINK_DISAGREE_MIN)
 
 
+def _xpool_kink_rejects(profile: np.ndarray, pmj: np.ndarray, axis: int,
+                        length: int, n_w: int) -> bool:
+    """Cross-pool breakpoint-lattice refutation of the winner.
+
+    The two kink refutations each read one evidence pool under
+    preconditions that can individually just fail.  This one reads
+    the pools JOINTLY: when the profile pool's fundamental period
+    and the pooled per-line pool's fundamental period AGREE with
+    each other but DISAGREE with the winner's pitch -- both with
+    real concentration, and the pooled evidence not itself
+    supporting the winner -- the axis's own pitch is the agreed
+    period, not the winner's, however the winner scored.
+    See the XPOOL_* calibration comment.
+    """
+    p_w = length / n_w
+    pk_p = _kink_positions(profile)
+    pk_q = _qpool_peaks(pmj, axis)
+    if len(pk_p) < XPOOL_PEAKS_MIN or len(pk_q) < XPOOL_PEAKS_MIN:
+        return False
+    if _phase_concentration(pk_q, p_w) > XPOOL_WINNER_MAX:
+        return False
+    s_p, c_p = _fundamental_period(pk_p, p_w, length)
+    s_q, c_q = _fundamental_period(pk_q, p_w, length)
+    if s_p is None or s_q is None:
+        return False
+    if c_p < XPOOL_FUND_MIN_PROFILE or c_q < XPOOL_FUND_MIN_POOLED:
+        return False
+    if abs(s_p - s_q) / max(s_p, s_q) > XPOOL_AGREE_MAX:
+        return False
+    s = 0.5 * (s_p + s_q)
+    return abs(s - p_w) / s > QKINK_DISAGREE_MIN
+
+
 def _axis_pitch_supported(profile: np.ndarray, pmj: np.ndarray, axis: int,
                           length: int, n_w: int) -> bool:
     """True when an axis's OWN breakpoint lattice confirms the winner.
@@ -745,7 +869,9 @@ def _axis_pitch_supported(profile: np.ndarray, pmj: np.ndarray, axis: int,
     pooled per-line breakpoints) the winner's pitch is supported when
     enough breakpoints concentrate on it directly (>= KINK_PEAKS_MIN
     peaks at concentration > KINK_WINNER_MAX), or when the lattice's
-    fundamental period agrees with it (within QKINK_DISAGREE_MIN at
+    fundamental period agrees with it (within GUARD_AGREE_MAX --
+    tighter than the refutation's disagreement threshold, because
+    confirmation must be stricter than refutation -- at
     concentration >= QKINK_FUND_MIN, from >= GUARD_PEAKS_MIN peaks).
     """
     p_w = length / n_w
@@ -756,7 +882,7 @@ def _axis_pitch_supported(profile: np.ndarray, pmj: np.ndarray, axis: int,
         if len(peaks) >= GUARD_PEAKS_MIN:
             s_fund, c_fund = _fundamental_period(peaks, p_w, length)
             if s_fund is not None and c_fund >= QKINK_FUND_MIN \
-                    and abs(s_fund - p_w) / s_fund <= QKINK_DISAGREE_MIN:
+                    and abs(s_fund - p_w) / s_fund <= GUARD_AGREE_MAX:
                 return True
     return False
 
@@ -812,6 +938,63 @@ def _coarser_margin(scorer: _Scorer, img: np.ndarray, est: GridEstimate,
         xb, yb = (b, fixed_b) if axis_is_x else (fixed_b, b)
         best = min(best, _aug_score(scorer, img, xb, yb))
     return (a_w - best) / scorer.n_entries
+
+
+def _snap_err(pmj: np.ndarray, img: np.ndarray,
+              xb: tuple[int, ...], yb: tuple[int, ...], model: int) -> float:
+    """Exact forward-model error of a grid under ONE damage model.
+
+    Median-sampled snap (the same sampler the winner's own error
+    uses), re-damaged under `model` (0 = crisp, 1 = smooth).
+    """
+    xa = AxisEstimate(cells=len(xb) - 1, offset=0, score=0.0, fit=0.0,
+                      prominence=0.0, comb=0.0, bounds=xb)
+    ya = AxisEstimate(cells=len(yb) - 1, offset=0, score=0.0, fit=0.0,
+                      prominence=0.0, comb=0.0, bounds=yb)
+    est_t = GridEstimate(nx=xa.cells, ny=ya.cells, confidence=0.0,
+                         fit_error=0.0, x=xa, y=ya)
+    ec, es = _forward_errors(pmj, xb, yb, _premultiplied(snap(img, est_t)))
+    return ec if model == 0 else es
+
+
+def _finer_harmonic_rejects(scorer: _Scorer, img: np.ndarray,
+                            pmj: np.ndarray, est: GridEstimate,
+                            axis_is_x: bool, err_w: float,
+                            model: int) -> bool:
+    """True when doubling this axis refutes the winner (merged cells).
+
+    See the FINER_* calibration comment.  The doubled challenger
+    must BOTH explain the image far better than the winner (exact
+    error ratio) AND show real phase sensitivity at its own pitch
+    (a mere refinement of a genuine axis improves neither -- its
+    extra cuts fall inside flat cells or on cell centres, so its
+    error barely moves and shifting it costs nothing).
+    """
+    if axis_is_x:
+        fixed_b, length, n_w = est.y.bounds, scorer.w, est.nx
+    else:
+        fixed_b, length, n_w = est.x.bounds, scorer.h, est.ny
+    if length / (2 * n_w) < MIN_CELL_PX or err_w < FINER_ERR_FLOOR:
+        return False
+    b2 = _boundaries(length, 2 * n_w, 0)
+    xb2, yb2 = (b2, fixed_b) if axis_is_x else (fixed_b, b2)
+    # Cheap pre-filter on mean-sampled errors: only axes whose fast
+    # ratio comes within reach of the exact threshold pay for snaps.
+    err_fast_w = scorer.fast_score(est.x.bounds, est.y.bounds)[1]
+    err_fast_2 = scorer.fast_score(xb2, yb2)[1]
+    if err_fast_2 >= FINER_FAST_PREFILTER * max(err_fast_w, 1e-9):
+        return False
+    e2 = _snap_err(pmj, img, xb2, yb2, model)
+    if e2 > FINER_ERR_RATIO_MAX * err_w:
+        return False
+    pitch2 = length / (2 * n_w)
+    sh = int(round(pitch2 / 2))
+    if sh >= pitch2:
+        sh -= int(round(pitch2))
+    b2s = _boundaries(length, 2 * n_w, max(0, sh))
+    xb2s, yb2s = (b2s, fixed_b) if axis_is_x else (fixed_b, b2s)
+    e2s = _snap_err(pmj, img, xb2s, yb2s, model)
+    return (e2s - e2) >= FINER_GAIN_MIN
 
 
 def _square_pitch_pairs(w: int, h: int, max_cx: int, max_cy: int):
@@ -1070,11 +1253,19 @@ def estimate_grid(images: list[np.ndarray]) -> GridEstimate:
     # independent of the square assumption: (a) the axis profile's
     # breakpoint lattice must have the winner's pitch as its period;
     # (b) no coarser count on this axis (other axis fixed) may beat
-    # the winner's full arbiter score by a clear margin.  Either
-    # refutation means the axes were stretched differently.  The
-    # lattice test runs on two independent evidence pools: the axis
-    # profile's breakpoints, and the per-line breakpoint evidence
-    # pooled over the whole image (fundamental-period selection).
+    # the winner's full arbiter score by a clear margin; (c) the
+    # doubled count on this axis must not explain the image far
+    # better with real phase sensitivity of its own -- the signature
+    # of a winner that merged pairs of true cells, its pitch twice
+    # the axis's own (the lattice tests are blind there: at a
+    # smeared ~2 px true pitch the breakpoints wash out); (d) the
+    # two breakpoint pools' fundamental periods must not agree with
+    # each other on a period that is not the winner's (the joint
+    # evidence neither single-pool test can see).  Any refutation
+    # means the axes were stretched differently.  The lattice test
+    # runs on two independent evidence pools: the axis profile's
+    # breakpoints, and the per-line breakpoint evidence pooled over
+    # the whole image (fundamental-period selection).
     a_w = _aug_score(scorer, images[0], est.x.bounds, est.y.bounds)
     for axis_is_x, n_w in ((True, est.nx), (False, est.ny)):
         _g_a, profile_a, length_a = signals[1 if axis_is_x else 0]
@@ -1082,13 +1273,24 @@ def estimate_grid(images: list[np.ndarray]) -> GridEstimate:
         qkink_reject = (not kink_reject) and _qpool_kink_rejects(
             pmj, 1 if axis_is_x else 0, n_w)
         cm = -math.inf
+        finer_reject = False
+        xpool_reject = False
         if not (kink_reject or qkink_reject):
             cm = _coarser_margin(scorer, images[0], est, axis_is_x, a_w)
+            if cm <= COARSER_MARGIN_MIN_BITS_PER_ENTRY:
+                finer_reject = _finer_harmonic_rejects(
+                    scorer, images[0], pmj, est, axis_is_x, err1, model1)
+            if not finer_reject:
+                xpool_reject = _xpool_kink_rejects(
+                    profile_a, pmj, 1 if axis_is_x else 0, length_a, n_w)
         LAST_STATS.update({
             f"nu_kink_{'x' if axis_is_x else 'y'}": kink_reject,
             f"nu_qkink_{'x' if axis_is_x else 'y'}": qkink_reject,
-            f"nu_coarser_{'x' if axis_is_x else 'y'}": cm})
-        if kink_reject or qkink_reject or cm > COARSER_MARGIN_MIN_BITS_PER_ENTRY:
+            f"nu_coarser_{'x' if axis_is_x else 'y'}": cm,
+            f"nu_finer_{'x' if axis_is_x else 'y'}": finer_reject,
+            f"nu_xpool_{'x' if axis_is_x else 'y'}": xpool_reject})
+        if kink_reject or qkink_reject or finer_reject or xpool_reject \
+                or cm > COARSER_MARGIN_MIN_BITS_PER_ENTRY:
             raise AbstainError(
                 f"no clean pixel grid found (candidate {est.nx}x{est.ny} "
                 "does not check out on both axes \u2014 the image appears "
