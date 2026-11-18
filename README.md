@@ -1,8 +1,8 @@
 ![snapgrid — recover the true pixel grid from smoothed, fake pixel art](docs/banner.png)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-27%20passing-brightgreen.svg)](#development)
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/RakTikoo/snapgrid/releases)
+[![Tests](https://img.shields.io/badge/tests-30%20passing-brightgreen.svg)](#development)
+[![Version](https://img.shields.io/badge/version-0.1.1-blue.svg)](https://github.com/RakTikoo/snapgrid/releases)
 
 # snapgrid
 
@@ -88,15 +88,21 @@ single-damage suite (see `REVIEW.md`). The current method:
    pitch is then verified against *each axis's own evidence*: the axis's
    breakpoint lattice (from its profile, and from per-line breakpoint
    evidence pooled over the image) must have the winner's pitch as its
-   period, and no coarser count on that axis may beat the winner's full
-   score by a clear margin. This is what catches non-uniformly resized
-   images — a square fit to one keeps one axis's true count, forces the
-   other axis to a matching pitch, and can fake the phase check, but it
-   cannot fake the forced axis's own breakpoint lattice. On very small
-   images (short side ≤ 24 px) that one-sided check is not enough — a
-   forced axis may offer too few breakpoints to refute anything — so
-   the winner must additionally be *positively* confirmed by both
-   axes' breakpoint lattices, or it abstains. A scale-aware
+   period, no coarser count on that axis may beat the winner's full
+   score by a clear margin, the *doubled* count on that axis must not
+   explain the image far better with phase sensitivity of its own
+   (the signature of a winner that merged pairs of true cells), and
+   the two breakpoint pools' fundamental periods must not agree with
+   each other on a period that is not the winner's. This is what
+   catches non-uniformly resized images — a square fit to one keeps
+   one axis's true count, forces the other axis to a matching pitch,
+   and can fake the phase check, but it cannot fake the forced axis's
+   own breakpoint lattice. On very small images (short side ≤ 24 px)
+   that one-sided check is not enough — a forced axis may offer too
+   few breakpoints to refute anything — so the winner must
+   additionally be *positively* confirmed by both axes' breakpoint
+   lattices (fundamental period within 8% of the winner's pitch), or
+   it abstains. A scale-aware
    edge-density check guards against photos and smooth gradients. In
    sheet mode, every frame must agree with the shared grid — a frame
    that strongly prefers a different grid makes the whole run abstain
@@ -152,12 +158,13 @@ and its thresholds were tuned on a development split only (gentle
 indices 0–5, harsh indices 0–17) and then measured, frozen, on 92
 held-out cases — gentle-protocol sprites with different seeds, harsh
 indices 18–35, and a fresh harsh set with different damage seeds:
-**83/92 = 90.2% exact, 7 abstained, 2 wrong**. Both remaining
-held-out wrong grids are the same very sparse 4-colour shape sprite
-(mostly flat background) under two damage types — see Known limits.
-(The third wrong grid from the first v2 measurement was the
-harsh-suite aliasing case above, counted in this set too; it now
-abstains under the pitch verification.)
+**83/92 = 90.2% exact, 8 abstained, 1 wrong**. The remaining
+held-out wrong grid is a very sparse 4-colour shape sprite (mostly
+flat background) — see Known limits. (Of the three wrong grids in
+the first v2 measurement of this set, the harsh-suite aliasing case
+now abstains under the pitch verification, and the same sparse
+sprite under blur damage now abstains under the deep-fix
+verification round described in `REVIEW.md`.)
 
 Context for the smooth-damage pixel numbers: on exact-grid cases,
 67.6% of output pixels land within ±8 per channel of the original
@@ -189,7 +196,14 @@ different factors per axis, both directions, all resample modes):
 **24/24 abstain, 0 emit a wrong grid**. The last two misses were
 8×8 sprites whose forced axis is only ~20 px long; a small-image
 guard now refuses exactly that regime rather than risk a wrong
-grid — see Known limits.
+grid — see Known limits. A later deep-fix round (see `REVIEW.md`)
+closed the remaining measured holes in this verification — a
+merged-axis case at 32 px short side, a case both breakpoint pools
+identified jointly but neither caught alone, and a tiny bicubic
+case the guard's confirmation tolerance was too loose to refuse —
+and the benchmark protocol re-run on three further fresh seed sets
+(including sets generated after every threshold was frozen) also
+abstains 24/24 on each.
 
 ## Known limits
 
@@ -201,29 +215,42 @@ grid — see Known limits.
   small nearest-upscaled blob sprite (8×8) is also exactly explained
   by a finer 20×20 grid (an aliasing coincidence — the pitch
   verification abstains on it rather than emitting it). Wrong grids
-  are 1/56 on the gentle suite, 0/36 on the harsh suite, 2/92
+  are 1/56 on the gentle suite, 0/36 on the harsh suite, 1/92
   held-out.
 - **Square cells are assumed.** The damaged image must come from a
   uniform upscale (same factor in x and y), which is how sprites are
   normally resized. A non-uniformly resized image is detected by the
   winner verification (per-axis phase evidence, each axis's own
-  breakpoint lattice, and coarser same-axis challengers) and
-  abstained on, not recovered. Very small images get a stricter
+  breakpoint lattice, coarser *and* doubled-count same-axis
+  challengers, and the two breakpoint pools read jointly) and
+  abstained on, not recovered. That holds on every benchmark set
+  measured; it is not a guarantee for all content — on deliberately
+  adversarial probes (milder stretch ratios, roughly 1.25–1.9×
+  between axes, on hard high-detail sprites) a wrong grid can still
+  slip through, as it could before this verification existed. Very
+  small images get a stricter
   rule, stated plainly: when the damaged image's short side is
   24 px or less, a grid is emitted only if *both* axes' own
-  breakpoint lattices positively confirm it — a very small image
-  whose sides disagree, or whose sides cannot be confirmed, is
-  refused rather than risk a wrong grid. That regime is where the
-  last measured misses lived: 8×8 sprites stretched to only ~20 px
-  on the forced axis, which offers just a handful of breakpoints —
-  too little evidence to refute a fit, so now it is not trusted to
-  confirm one either. On the 24-case non-uniform benchmark all 24
-  cases now abstain. The guard's measured cost is zero: across the
-  gentle, harsh, and held-out suites no genuine recovery was lost
-  (the only genuine recoveries that small are nearest-upscaled
-  24×24 images, whose lattice evidence is exact, and they still
-  recover). A deeper fix — positively verifying tiny sprites
-  instead of refusing the unconfirmable ones — is future work.
+  breakpoint lattices positively confirm it (fundamental period
+  within 8% of the winner's pitch) — a very small image whose sides
+  disagree, or whose sides cannot be confirmed, is refused rather
+  than risk a wrong grid. That regime is where the last measured
+  misses lived: 8×8 sprites stretched to only ~20 px on the forced
+  axis, which offers just a handful of breakpoints — too little
+  evidence to refute a fit, so now it is not trusted to confirm one
+  either. On the 24-case non-uniform benchmark all 24 cases now
+  abstain. The guard's measured cost is zero: across the gentle,
+  harsh, and held-out suites no genuine recovery was lost (the only
+  genuine recoveries that small are nearest-upscaled 24×24 images,
+  whose lattice evidence is exact, and they still recover).
+  Recovering the refused tiny sprites instead was investigated in
+  the deep-fix round and measured to be impossible on the available
+  evidence: under an unrestricted (non-square) grid search, one
+  refused case's true grid ranks 38th of 135 candidate pairs, and
+  in another the wrong grid explains the damaged image *better*
+  than the true one (forward error 1.97 vs 3.08) — the information
+  needed to tell them apart is not in the image. The refusal
+  stands; see `REVIEW.md` for the measurements.
 - **Some large sprites with sparse edges may still abstain** through
   the scale-aware edge-density gate, even though they are in scope
   (a 64×64 sprite upscaled ~3.7× with very few edges per row/column
@@ -251,7 +278,7 @@ grid — see Known limits.
 ## Development
 
 ```bash
-python run_tests.py                  # 27 tests: ground-truth measurement + invariants + adversarial + review regressions + CLI
+python run_tests.py                  # 30 tests: ground-truth measurement + invariants + adversarial + review regressions + CLI
 python benchmarks/gentle_suite.py    # gentle single-damage benchmark (56 cases)
 python benchmarks/heldout_suite.py   # held-out validation (92 cases, frozen detector)
 python benchmarks/nonuniform_suite.py # non-uniform resize: abstention is the only correct outcome (24 cases)

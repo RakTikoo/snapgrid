@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "snapgrid"
-version = "0.1.0"
+version = "0.1.1"
 description = "Recover the true pixel grid from damaged 'fake pixel art' and snap it back to clean pixel art — one shared grid and palette for a whole sprite sheet or animation."
 readme = "README.md"
 license = { text = "MIT" }

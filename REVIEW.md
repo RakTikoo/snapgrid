@@ -576,3 +576,136 @@ verifying tiny/thin-evidence sprites, the deeper fix round's
 job. The README's Known limits now state the guard's rule and
 its zero measured cost, and name that deeper fix as future
 work.
+
+---
+
+## Builder note — deep-fix round (2026-11-17, Rakshit's option 3; all sections above unchanged)
+
+The guard note above left two jobs: the dev-set case outside the
+guard's scope (16×24 at 2.0×/4.0 bicubic + blur, damaged 32×96,
+emitting a wrong 8×24 at confidence 0.45), and the general problem
+of the guarded tiny regime. This round addressed both, then kept
+going: validation on fresh seed sets found two more wrong grids of
+the same non-uniform family, and those were fixed too. All changes
+are in the verification stage and the guard; nomination and the
+arbiter are untouched, so every recovery number below moved only
+where a wrong emission became an abstention.
+
+**Fix 1 — finer-harmonic challenger (the dev case).** The winner
+had MERGED pairs of true x cells: its pitch (4.0) is exactly twice
+the axis's own (2.0). At a smeared 2.0 px pitch the breakpoint
+lattices wash out (profile fundamental 4.45 at concentration 0.71;
+pooled 2.55 at 0.71 — no clean lattice anywhere), and the coarser
+challenger looks the wrong way. The signature that survives is in
+the forward model: doubling the axis's count (other axis fixed)
+cuts the exact error to 0.732× the winner's AND the doubled grid
+is itself phase-sensitive on that axis (gain 2.38). A mere
+refinement of a genuine axis does neither. Refutation rule (exact
+median-sampled errors under the winner's damage model, winner
+error ≥ 2.0, fast-ratio pre-filter 1.05): error ratio ≤ 0.85 AND
+doubled-grid phase gain ≥ 1.0. Calibration over the 342 genuine
+emitted axes of the three suites (exact stats for every axis
+within reach of the threshold — 71 axes; the rest sit behind the
+pre-filter with ≥ 0.5 slack against the largest fast-vs-exact
+ratio discrepancy observed anywhere, 0.24): genuine minimum ratio
+0.963, genuine maximum gain 0.08. Thresholds sit inside the gaps.
+Rejected on the same data, again: free-axis MDL margins (genuine
+axes reach 0.86 bits/entry — the winner is not the per-axis MDL
+optimum on genuine images either) and the doubled-count FAST-score
+margin (one genuine axis, a 12-cell character sprite at pitch
+5.08, reaches +0.055 against the fake's +0.057 — no gap; its exact
+ratio is 1.088 and its doubled gain 0.08, which is why the rule
+uses exact errors).
+
+**Fix 2 — cross-pool lattice agreement (fresh-seed find).**
+Validation of Fix 1 on an untouched seed range (sprites 20000+,
+same non-uniform protocol) found 2 wrong in 24 — both pre-existing
+under v0.1.0 (verified against a reconstructed v0.1.0 tree; the
+set's other 22 cases behaved identically under both versions).
+Case 6 (18×14 at 3.8×/2.4 bilinear + blur, emitted 18×10): each
+single-pool test just missed — 5 profile breakpoints (floor 6),
+profile winner-concentration 0.59 (ceiling 0.50), pooled
+fundamental 0.81 (floor 0.85) — yet BOTH pools' fundamental
+periods were the true pitch 2.45 against the winner's 3.40.
+New refutation: both pools offer ≥ 5 breakpoints, their
+fundamentals agree within 12%, the agreed period disagrees with
+the winner's pitch by > 20%, fundamentals concentrate ≥ 0.90
+(profile) / ≥ 0.75 (pooled), and the pooled breakpoints do not
+themselves support the winner (concentration ≤ 0.50). Zero fires
+over 442 genuine emitted axes across a broad threshold plateau
+(at a peaks floor of 4 one genuine axis fires; at 6 the target is
+lost). Nearest genuine approach: one JPEG axis whose pools
+disagree with each other and sit only 0.13 from the winner —
+saved by the 0.20 disagreement condition, slack 0.07.
+
+**Fix 3 — guard confirmation tolerance (the second fresh find).**
+Case 13 (8×8 at 5.0×/3.0 bicubic, damaged 40×24, emitted 14×8 at
+confidence 0.83) passed the guard because 3–4 pooled content edges
+concentrated at a period 17% / 13% off the winner's pitch, inside
+the 20% tolerance the guard had borrowed from the refutation.
+Confirmation must be stricter than refutation: the guard's
+fundamental-agreement tolerance is now 8% (its own constant; the
+refutations keep 20%). Measured in-scope genuine agreements are
+≤ 0.032; the fake's were 0.130 / 0.166. Raising the peak floor
+instead was measured and rejected: a genuine 24×24 recovery's
+y axis confirms through exactly 3 peaks.
+
+**The tiny regime — recovery attempted, measured impossible.**
+The guarded cases were tested for recoverability with an
+unrestricted (non-square) search over all count pairs, scored by
+the same forward model. The evidence contradicts itself across
+cases: for acceptance case 15 the true pair ranks 1st of 170 and
+its exact error is 0.69× the winner's — identifiable; for case 6
+the true pair ranks 38th of 135 — not identifiable; for fresh
+case 13 the wrong grid's exact error (1.97) BEATS the true grid's
+(3.08) — the image genuinely contains more evidence for the wrong
+answer. No verification can separate "identifiable" from
+"misleading" at 3–5 breakpoints per axis, so the guard's refusal
+stands as the correct behaviour for the regime, now with the
+stricter confirmation of Fix 3. This closes the guard note's
+"deeper fix" item as a measured negative result, not an omission.
+
+**Results after all three fixes** (all re-measured with the
+shipped code; before = v0.1.0 as published):
+
+| measurement | before | after |
+|---|---|---|
+| test suite | 27/27 | **30/30** (3 regression tests added) |
+| gentle suite (56) | 54 / 1 / 1 | **54 / 1 / 1 (unchanged, per-class identical)** |
+| harsh suite (36) | 34 / 2 / 0 | **34 / 2 / 0 (unchanged)** |
+| held-out (92) | 83 / 7 / 2 | **83 / 8 / 1** (the sparse-sprite blur case now abstains) |
+| non-uniform acceptance (9000+, 24) | 24 abstain / 0 wrong | **24 abstain / 0 wrong** |
+| non-uniform dev (8000+, 24) | 23 abstain / 1 wrong | **24 abstain / 0 wrong** |
+| non-uniform fresh (20000+, 24) | 22 abstain / 2 wrong | **24 abstain / 0 wrong** |
+| gentle-style fresh (21000+, 56) | 50 / 5 / 1 | **50 / 5 / 1 (unchanged)** |
+| non-uniform validation (30000+, 24) | — | **24 abstain / 0 wrong** |
+| gentle-style validation (31000+, 56) | — | 48 / 6 / 2 (see residuals) |
+
+Method note: the 20000+/21000+ sets were untouched validation for
+Fix 1, then served as dev evidence for Fixes 2–3; the
+30000+/31000+ sets were generated after all thresholds froze and
+are the clean validation for the round as a whole. Runtime is
+unchanged in character (the new checks run only on would-be
+emissions; the expensive one is fast-ratio pre-filtered).
+
+**Remaining residuals, honestly stated.** (i) The gentle JPEG
+case (index 10) still emits a wrong grid, as before — an inflated
+count on a sparse sprite at pitch ~2.3, a family no measured
+statistic separates (its free-axis margins are negative; the
+truth scores worse than the winner under the arbiter). (ii) The
+held-out sparse shape sprite (seed 2005) still emits under bicubic
+damage; its blur-damage twin now abstains. (iii) The 31000+
+validation set contains two wrong grids from the same known
+families — a JPEG case and a 4-colour shape sprite under integer
+nearest upscale read as a coarser grid (12×12 → 9×9); the latter
+was verified to emit identically under v0.1.0, so it is a
+pre-existing aliasing limit, not a regression of this round.
+(iv) The cross-pool rule's nearest genuine approach has slack
+0.07 on one condition (see Fix 2) — recorded here so a future
+reviewer can watch it.
+
+**Builder's verdict:** the round's targets are met — every
+measured non-uniform wrong grid is now an abstention, with zero
+genuine recoveries lost on any suite (gentle and harsh counts are
+identical to v0.1.0; held-out wrong fell 2 → 1 at equal exact).
+Ready for independent re-review as a v0.1.1 candidate.
