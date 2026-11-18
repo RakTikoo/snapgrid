@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "snapgrid"
+version = "0.1.0"
+description = "Recover the true pixel grid from damaged 'fake pixel art' and snap it back to clean pixel art — one shared grid and palette for a whole sprite sheet or animation."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = [
+    "pillow",
+    "numpy",
+]
+keywords = ["pixel-art", "sprite", "image-processing", "cli"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Graphics",
+]
+
+[project.scripts]
+snapgrid = "snapgrid.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/RakTikoo/snapgrid"
+
+[tool.setuptools.packages.find]
+include = ["snapgrid*"]
