@@ -16,6 +16,37 @@ pip install git+https://github.com/RakTikoo/snapgrid
 
 Requires Python ≥ 3.10; dependencies are Pillow and NumPy. CPU only, classical algorithms only — no ML, nothing leaves your machine.
 
+Or from the release files (no registry involved): download
+`snapgrid-0.1.1-py3-none-any.whl` from the
+[v0.1.1 release](https://github.com/RakTikoo/snapgrid/releases/tag/v0.1.1)
+(check it against the release's SHA256SUMS if you want) and install it:
+
+```bash
+pip install snapgrid-0.1.1-py3-none-any.whl
+```
+
+Or install straight from GitHub at the v0.1.1 tag:
+
+```bash
+pip install git+https://github.com/RakTikoo/snapgrid@v0.1.1
+pipx install git+https://github.com/RakTikoo/snapgrid@v0.1.1
+uv tool install git+https://github.com/RakTikoo/snapgrid@v0.1.1
+```
+
+With Homebrew (macOS/Linux):
+
+```bash
+brew tap RakTikoo/tools
+brew install RakTikoo/tools/snapgrid
+```
+
+With Scoop (Windows):
+
+```powershell
+scoop bucket add RakTikoo https://github.com/RakTikoo/scoop-bucket
+scoop install snapgrid
+```
+
 ## Usage
 
 Snap a single image:
