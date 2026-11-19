@@ -35,6 +35,10 @@ Cap the palette if you need to (`--max-colors`, default 256). Every run writes t
 
 Exit codes: `0` success, `2` bad input (clean one-line error), `3` **abstained** — no clean grid found, nothing written. Abstaining is a feature: a wrong grid is worse than no answer.
 
+## Use with an AI agent
+
+This repo ships a [SKILL.md](SKILL.md) written to the Agent Skills open standard. If your coding agent supports skills, point it at this repo and it can install snapgrid, run it on your damaged sprites, sheets and frames, and read the recovered grid, confidence and abstentions for you. The skill works when the repo is cloned under its real name (`snapgrid`) — a skill's name must match its folder.
+
 ## Demo
 
 ![original | damaged | recovered](examples/demo_compare.png)
