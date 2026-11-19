@@ -1,6 +1,6 @@
 ---
 name: snapgrid
-description: Recover the pixel grid from damaged "fake pixel art" — sprites upscaled with smoothing, AI-generated, or blur/JPEG-damaged — and snap them back to pixel art. Use when asked to fix smoothed or blurry pixel art, recover a sprite's original resolution and palette, or clean up a sprite sheet or animation frames — for example "this pixel art was upscaled with smoothing, snap it back", "recover the original grid of this sprite", or "fix these animation frames so they share one grid and palette". A sheet or folder of frames is processed jointly, with one shared grid and one shared palette.
+description: Recover the pixel grid from damaged "fake pixel art" — sprites upscaled with smoothing, AI-generated, or blur/JPEG-damaged — and snap them back to pixel art. Use when asked to fix smoothed or blurry pixel art, recover a sprite's original resolution and palette, or clean up a sprite sheet or animation frames — for example "this pixel art was upscaled with smoothing, snap it back", "recover the original grid of this sprite", or "fix these animation frames so they share one grid and palette". Not for making textures tile seamlessly (that is seamproof) or finding 9-slice borders in UI panels (that is patchproof). A sheet or folder of frames is processed jointly, with one shared grid and one shared palette.
 license: MIT
 compatibility: Requires Python 3.10+; pip installs Pillow and NumPy. CPU only, classical algorithms, no ML; network is needed only to install.
 ---

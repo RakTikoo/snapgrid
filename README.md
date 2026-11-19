@@ -4,7 +4,7 @@
 [![Tests](https://img.shields.io/badge/tests-30%20passing-brightgreen.svg)](#development)
 [![Version](https://img.shields.io/badge/version-0.1.1-blue.svg)](https://github.com/RakTikoo/snapgrid/releases)
 
-# snapgrid
+# snapgrid — recover the pixel grid from damaged pixel art
 
 Recover the true pixel grid from damaged "fake pixel art" — images that were upscaled with smoothing, AI-generated, or blur/JPEG-damaged — and snap them back to clean, real pixel art, with **one shared grid and one shared palette for a whole sprite sheet or animation**.
 
