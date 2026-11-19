@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - name: RakTikoo
+title: "snapgrid: recover the pixel grid from damaged pixel art"
+version: 0.1.1
+date-released: 2026-11-17
+license: MIT
+url: "https://github.com/RakTikoo/snapgrid"
+repository-code: "https://github.com/RakTikoo/snapgrid"
+abstract: >-
+  Recovers the true pixel grid from smoothed or rescaled pixel art and
+  downsamples it back to the original pixels. When the grid cannot be
+  recovered reliably it abstains with a stated reason instead of returning a
+  wrong grid.
+keywords:
+  - pixel art
+  - grid recovery
+  - game art
+  - image processing

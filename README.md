@@ -6,6 +6,8 @@
 
 # snapgrid — recover the pixel grid from damaged pixel art
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/RakTikoo/snapgrid)
+
 Recover the true pixel grid from damaged "fake pixel art" — images that were upscaled with smoothing, AI-generated, or blur/JPEG-damaged — and snap them back to clean, real pixel art, with **one shared grid and one shared palette for a whole sprite sheet or animation**.
 
 ## Install
@@ -46,6 +48,8 @@ With Scoop (Windows):
 scoop bucket add RakTikoo https://github.com/RakTikoo/scoop-bucket
 scoop install snapgrid
 ```
+
+**For agent users:** this repository ships a `SKILL.md` for AI agents. Install it with `npx skills add RakTikoo/snapgrid`.
 
 ## Usage
 
