@@ -41,7 +41,7 @@ snapgrid sheet frames_folder/ --out fixed_frames/
 A successful run prints the input size, the recovered grid (for example `recovered grid: 24x24 (cell ~4.29x4.29px, offset 0,0)`), a confidence value with its resynthesis fit error, the palette size, and the file written. Judge a result by the grid and confidence, not by the exit code alone. The exit code is the verdict:
 
 - `0` — a grid was recovered and the snapped image(s) and palette sidecars were written.
-- `3` — **abstained**: no clean grid found, nothing written, and the message says why (for example the image looks like a smooth gradient or photo, or it may already be clean native pixel art). Treat exit 3 as "this tool cannot honestly answer", not as a failure to retry.
+- `3` — **abstained**: no clean grid found, nothing written, and the message says why (for example the image looks like a smooth gradient or photo, or it may already be clean native pixel art). The reason is printed to **stderr**, not stdout — stdout is empty on an abstention, so an agent must read stderr; stdout alone shows only the bare exit code. Treat exit 3 as "this tool cannot honestly answer", not as a failure to retry.
 - `2` — bad input: a clean one-line error (missing file, not an image, unusable arguments), nothing written.
 
 ## Limits
